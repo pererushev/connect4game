@@ -2,53 +2,69 @@
 
 namespace User\Codewars;
 
+/**
+ * Доска: $board[column][row], row 0 — низ столбца (куда падает фишка).
+ */
 class Connect4
 {
-    private $board = [];
-    private $currentPlayer = 2;
-    private $currentColumn = 0;
-    private $currentRow = 0;
-    private $winner = null;
-    private $gameOver = false;
+    private const COLS = 7;
+    private const ROWS = 6;
+    private const WIN_LENGTH = 4;
+
+    private array $board = [];
+    private int $currentPlayer = 2;
+    private int $currentColumn = 0;
+    private int $currentRow = 0;
+    private bool $gameOver = false;
 
     public function __construct()
     {
-        $this->board = array_fill(0, 7, array_fill(0, 6, 0));
+        $this->board = array_fill(0, self::COLS, array_fill(0, self::ROWS, 0));
     }
+
     public function play(int $column): string
     {
         if ($this->gameOver) {
             return "Game has finished!";
         }
-        $this->changePlayer();
+
         $this->currentColumn = $column;
 
         if ($this->checkColumnFullness()) {
             return "Column full!";
         }
+
+        $this->changePlayer();
         $this->makeMove();
-        if ($this->checkVerticalWin() || $this->checkHorizontalWin() || $this->checkDiagonalWin()) {
+
+        if ($this->checkWin()) {
             $this->gameOver = true;
+
             return "Player {$this->currentPlayer} wins!";
         }
+
         return "Player {$this->currentPlayer} has a turn";
     }
+
     private function checkColumnFullness(): bool
     {
-        foreach($this->board[$this->currentColumn] as $cell) {
+        foreach ($this->board[$this->currentColumn] as $cell) {
             if ($cell === 0) {
                 return false;
             }
         }
+
         return true;
     }
+
     private function changePlayer(): void
     {
         $this->currentPlayer = $this->currentPlayer === 1 ? 2 : 1;
     }
+
     private function makeMove(): void
     {
-        foreach($this->board[$this->currentColumn] as $row => $cell) {
+        foreach ($this->board[$this->currentColumn] as $row => $cell) {
             if ($cell === 0) {
                 $this->currentRow = $row;
                 $this->board[$this->currentColumn][$row] = $this->currentPlayer;
@@ -56,78 +72,40 @@ class Connect4
             }
         }
     }
-    private function getRow(): array
+
+    private function checkWin(): bool
     {
-        $row = [];
-        foreach($this->board as $columnNumber => $columnValue) {
-            $row[] = $columnValue[$this->currentRow];
-        }
-        return $row;
-    }
-    private function checkVerticalWin(): bool
-    {
-        $column = $this->board[$this->currentColumn];
-        for ($i = 0; $i <= count($column) - 4; $i++) {
-            if ($column[$i] === $this->currentPlayer
-                && $column[$i + 1] === $this->currentPlayer
-                && $column[$i + 2] === $this->currentPlayer
-                && $column[$i + 3] === $this->currentPlayer) {
-                return true;
-            }
-        }
-        return false;
-    }
-    private function checkHorizontalWin(): bool
-    {
-        $row = $this->getRow();
-        for ($i = 0; $i <= count($row) - 4; $i++) {
-            if ($row[$i] === $this->currentPlayer
-                && $row[$i + 1] === $this->currentPlayer
-                && $row[$i + 2] === $this->currentPlayer
-                && $row[$i + 3] === $this->currentPlayer) {
-                return true;
-            }
-        }
-        return false;
+        return $this->countInLine(0, 1) >= self::WIN_LENGTH   // вертикаль
+            || $this->countInLine(1, 0) >= self::WIN_LENGTH  // горизонталь
+            || $this->countInLine(1, 1) >= self::WIN_LENGTH  // ↘
+            || $this->countInLine(1, -1) >= self::WIN_LENGTH; // ↗
     }
 
-    private function getDiagonals(): array
+    private function countInLine(int $colDelta, int $rowDelta): int
     {
-        $result = [];
-        // Ищем диагонали, идущие сверху-вниз, слева-направо (↘️)
-        // Начальная строка: от 0 до ($rows - $length)
-        // Начальный столбец: от 0 до ($cols - $length)
-        $rows = count($this->board[0]);
-        $cols = count($this->board);
-        $length = 4;
-        for ($col = 0; $col <= $cols - $length; $col++) {
-            for ($row = 0; $row <= $rows - $length; $row++) {
-                $diagonal = [];
-                for ($k = 0; $k < $length; $k++) {
-                    $diagonal[] = $this->board[$col + $k][$row + $k];
-                }
-                $result[] = $diagonal;
-            }
+        $count = 1;
+
+        $col = $this->currentColumn + $colDelta;
+        $row = $this->currentRow + $rowDelta;
+        while ($this->isInBounds($col, $row) && $this->board[$col][$row] === $this->currentPlayer) {
+            $count++;
+            $col += $colDelta;
+            $row += $rowDelta;
         }
 
-        for ($col = 0; $col <= $cols - $length; $col++) {
-            for ($row = $length - 1; $row < $rows; $row++) {
-                $diagonal = [];
-                for ($k = 0; $k < $length; $k++) {
-                    $diagonal[] = $this->board[$col + $k][$row - $k];
-                }
-                $result[] = $diagonal;
-            }
+        $col = $this->currentColumn - $colDelta;
+        $row = $this->currentRow - $rowDelta;
+        while ($this->isInBounds($col, $row) && $this->board[$col][$row] === $this->currentPlayer) {
+            $count++;
+            $col -= $colDelta;
+            $row -= $rowDelta;
         }
-        return $result;
+
+        return $count;
     }
-    private function checkDiagonalWin(): bool
+
+    private function isInBounds(int $col, int $row): bool
     {
-        foreach($this->getDiagonals() as $diagonal) {
-            if (implode('',$diagonal) === str_repeat($this->currentPlayer, 4)) {
-                return true;
-            }
-        }
-        return false;
+        return $col >= 0 && $col < self::COLS && $row >= 0 && $row < self::ROWS;
     }
 }
