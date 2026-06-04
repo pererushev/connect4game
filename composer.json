@@ -1,0 +1,17 @@
+{
+    "name": "user/codewars",
+    "require": {
+        "phpunit/phpunit": "^12.5"
+    },
+    "autoload": {
+        "psr-4": {
+            "User\\Codewars\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Roman Pererushev",
+            "email": "roman.pererushev@gmail.com"
+        }
+    ]
+}
